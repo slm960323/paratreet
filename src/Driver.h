@@ -44,6 +44,9 @@ public:
   BoundingBox universe;
   CProxy_TreePiece<CentroidData> treepieces; // Cannot be a global readonly variable
   int n_treepieces;
+  double tp_migrate_ratio;
+  Real max_velocity;
+  Real updated_timestep_size;
   double start_time;
 
   Driver(CProxy_CacheManager<Data> cache_manager_) :
@@ -132,6 +135,7 @@ public:
   // Core iterative loop of the simulation
   void run(CkCallback cb) {
     auto config = treespec.ckLocalBranch()->getConfiguration();
+    updated_timestep_size = config.timestep_size;
     for (int iter = 0; iter < config.num_iterations; iter++) {
       CkPrintf("\n* Iteration %d\n", iter);
 
@@ -170,10 +174,24 @@ public:
 
       // Move the particles in TreePieces
       start_time = CkWallTimer();
-      bool complete_rebuild = (iter % config.flush_period == config.flush_period - 1);
-      treepieces.perturb(config.timestep_size, complete_rebuild); // 0.1s for example
+      treepieces.calculateMigrateRatio(updated_timestep_size);
       CkWaitQD();
-      CkPrintf("Perturbations: %.3lf ms\n", (CkWallTimer() - start_time) * 1000);
+      //bool complete_rebuild = (iter % config.flush_period == config.flush_period - 1);
+      bool complete_rebuild = tp_migrate_ratio > 0.7;
+      Real max_universe_box_dimension = 0;
+      for (int dim = 0; dim < 3; dim ++){
+        Real length = universe.box.greater_corner[dim] - universe.box.lesser_corner[dim];
+        if (length > max_universe_box_dimension)
+          max_universe_box_dimension = length;
+      }
+
+      updated_timestep_size = max_universe_box_dimension / max_velocity / 100.0;
+      //CkPrintf("Perturbations Parameters: max_universe_box_dimension = %f; max_velocity = %f; updated_timestep_size = %f\n",max_universe_box_dimension, max_velocity, updated_timestep_size);
+      if (updated_timestep_size > config.timestep_size) updated_timestep_size = config.timestep_size;
+      //!!treepieces.perturb(config.timestep_size, complete_rebuild); // 0.1s for example
+      treepieces.perturb(updated_timestep_size, complete_rebuild); // 0.1s for example
+      CkWaitQD();
+      CkPrintf("Perturbations: %.3lf ms; timestep_size = %f; average mirgate ratio = %f; rebuild %s\n", (CkWallTimer() - start_time) * 1000, updated_timestep_size, tp_migrate_ratio, (complete_rebuild ? "true" : "false"));
 
       // Call user's post-interaction function, which may for example:
       // Output particle accelerations for verification
@@ -200,6 +218,17 @@ public:
   // -------------------
   // Auxiliary functions
   // -------------------
+  void treepiecesReportMigrateCountAndMaxVelocity(CkReductionMsg * msg){
+    int numRedn = 0;
+    CkReduction::tupleElement* res = NULL;
+    msg->toTuple(&res, &numRedn);
+    int migrateCount = *(int*)(res[0].data);
+    max_velocity = *(Real*)(res[1].data) + 0.1; // avoid max_velocity = 0.0
+    tp_migrate_ratio = migrateCount;
+    tp_migrate_ratio /= universe.n_particles;
+
+    //CkPrintf("Tree pieces report msg size = %d; migrate count = %d; total particals = %d; ratio = %f;  max_velocity = %f\n", numRedn, migrateCount, universe.n_particles, tp_migrate_ratio, max_velocity);
+  }
 
   void countInts(unsigned long long* intrn_counts) {
     CkPrintf("%llu node-particle interactions, %llu particle-particle interactions\n", intrn_counts[0], intrn_counts[1]);

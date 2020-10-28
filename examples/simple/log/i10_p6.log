@@ -1,0 +1,157 @@
+Charm++: standalone mode (not using charmrun)
+Charm++> Running in non-SMP mode: 1 processes (PEs)
+Converse/Charm++ Commit ID: v6.11.0-devel-384-g46a15db
+Charm++ built without optimization.
+Do not use for performance benchmarking (build with --with-production to do so).
+Charm++ built with internal error checking enabled.
+Do not use for performance benchmarking (build without --enable-error-checking to do so).
+Charm++> Using STL-based msgQ:
+Charm++> Using randomized msgQ. Priorities will not be respected!
+Charm++> scheduler running in netpoll mode.
+CharmLB> Load balancer assumes all CPUs are same.
+Charm++> Running on 1 hosts (2 sockets x 20 cores x 1 PUs = 40-way SMP)
+Charm++> cpu topology info is gathered in 0.001 seconds.
+
+[PARATREET]
+Input file: /home/simengl2/School/paratreet/inputgen/100k.tipsy
+Decomposition type: OCT
+Tree type: OCT
+Maximum number of particles per treepiece: 1000
+Maximum number of particles per leaf: 10
+
+* Initialization
+Loading Tipsy data and building universe: 23.879 ms
+Universal bounding box: <100000, 1.001, 6.124, {(-16.969 -17.214 -17.346),(17.391 17.646 16.913)}> with volume 41034.148
+Assigning keys and sorting particles: 80.951 ms
+Setting up splitters for decomposition: 0.604 ms
+Created 421 TreePieces: 9.148 ms
+Flushing particles to TreePieces: 8.407 ms
+
+* Iteration 0
+Tree build: 95.955 ms
+Received data from 60 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 60
+TreeCanopy cache loading: 0.307 ms
+Tree traversal: 5336.575 ms
+Interactions: 8797.804 ms
+Tree pieces report migrate ratio
+Perturbations: 57.636 ms; average mirgate ratio = 0.406535; rebuild false
+
+* Iteration 1
+Tree build: 80.911 ms
+Received data from 60 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 60
+TreeCanopy cache loading: 0.513 ms
+Tree traversal: 206.488 ms
+Interactions: 0.796 ms
+Tree pieces report migrate ratio
+Perturbations: 38.877 ms; average mirgate ratio = 0.414933; rebuild false
+
+* Iteration 2
+Tree build: 62.896 ms
+Received data from 60 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 60
+TreeCanopy cache loading: 0.538 ms
+Tree traversal: 205.982 ms
+Interactions: 0.821 ms
+Tree pieces report migrate ratio
+Perturbations: 25.959 ms; average mirgate ratio = 0.625751; rebuild true
+Rebuilding universe: 3.287 ms
+Universal bounding box: <100000, 1.001, 6.124, {(-16.591 -17.140 -16.737),(17.280 17.644 16.883)}> with volume 39610.008
+Assigning keys and sorting particles: 65.366 ms
+Setting up splitters for decomposition: 3.087 ms
+Created 456 TreePieces: 5.779 ms
+Flushing particles to TreePieces: 5.926 ms
+
+* Iteration 3
+Tree build: 88.590 ms
+Received data from 65 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 65
+TreeCanopy cache loading: 0.289 ms
+Tree traversal: 5274.375 ms
+Interactions: 8675.671 ms
+Tree pieces report migrate ratio
+Perturbations: 59.411 ms; average mirgate ratio = 0.414099; rebuild false
+
+* Iteration 4
+Tree build: 87.533 ms
+Received data from 65 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 65
+TreeCanopy cache loading: 0.545 ms
+Tree traversal: 234.207 ms
+Interactions: 0.910 ms
+Tree pieces report migrate ratio
+Perturbations: 42.389 ms; average mirgate ratio = 0.420340; rebuild false
+
+* Iteration 5
+Tree build: 68.413 ms
+Received data from 65 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 65
+TreeCanopy cache loading: 0.583 ms
+Tree traversal: 233.526 ms
+Interactions: 0.974 ms
+Tree pieces report migrate ratio
+Perturbations: 24.055 ms; average mirgate ratio = 0.640101; rebuild true
+Rebuilding universe: 5.633 ms
+Universal bounding box: <100000, 1.001, 6.124, {(-16.531 -17.004 -16.725),(17.179 17.504 16.858)}> with volume 39065.492
+Assigning keys and sorting particles: 66.689 ms
+Setting up splitters for decomposition: 0.645 ms
+Created 463 TreePieces: 5.083 ms
+Flushing particles to TreePieces: 6.240 ms
+
+* Iteration 6
+Tree build: 89.530 ms
+Received data from 66 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 66
+TreeCanopy cache loading: 0.317 ms
+Tree traversal: 5711.029 ms
+Interactions: 9411.397 ms
+Tree pieces report migrate ratio
+Perturbations: 63.749 ms; average mirgate ratio = 0.410991; rebuild false
+
+* Iteration 7
+Tree build: 97.744 ms
+Received data from 66 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 66
+TreeCanopy cache loading: 0.709 ms
+Tree traversal: 251.405 ms
+Interactions: 0.981 ms
+Tree pieces report migrate ratio
+Perturbations: 43.462 ms; average mirgate ratio = 0.415250; rebuild false
+
+* Iteration 8
+Tree build: 69.527 ms
+Received data from 66 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 66
+TreeCanopy cache loading: 0.602 ms
+Tree traversal: 273.089 ms
+Interactions: 1.737 ms
+Tree pieces report migrate ratio
+Perturbations: 33.962 ms; average mirgate ratio = 0.634408; rebuild true
+Rebuilding universe: 3.341 ms
+Universal bounding box: <100000, 1.001, 6.126, {(-16.523 -17.000 -16.605),(17.167 17.386 16.751)}> with volume 38641.582
+Assigning keys and sorting particles: 78.729 ms
+Setting up splitters for decomposition: 1.769 ms
+Created 435 TreePieces: 5.280 ms
+Flushing particles to TreePieces: 8.064 ms
+
+* Iteration 9
+Tree build: 91.835 ms
+Received data from 62 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 62
+TreeCanopy cache loading: 0.327 ms
+Tree traversal: 5710.398 ms
+Interactions: 9393.750 ms
+Tree pieces report migrate ratio
+Perturbations: 65.069 ms; average mirgate ratio = 0.411559; rebuild false
+[Partition 0][Node 0] End of program

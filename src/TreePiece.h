@@ -21,6 +21,7 @@
 
 extern CProxy_TreeSpec treespec;
 extern CProxy_Reader readers;
+extern CProxy_Driver<CentroidData> centroid_driver;
 
 template <typename Data>
 class TreePiece : public CBase_TreePiece<Data> {
@@ -67,6 +68,7 @@ public:
   void goDown(Key);
   void interact(const CkCallback&);
   void print(Node<Data>*);
+  void calculateMigrateRatio(Real timestep);
   void perturb (Real timestep, bool);
   void flush(CProxy_Reader);
   void destroy();
@@ -431,27 +433,26 @@ void TreePiece<Data>::interact(const CkCallback& cb) {
 }
 
 template <typename Data>
-void TreePiece<Data>::perturb (Real timestep, bool if_flush) {
-  if (particles.empty()) return;
-  // If tree will be entirely rebuilt, just update particle positions
-  // based on the forces calculated from interactions
-  if (if_flush) {
-    for (auto && p : particles) {
-      p.perturb(timestep, readers.ckLocalBranch()->universe.box);
-    }
-    flush(readers);
+void TreePiece<Data>::calculateMigrateRatio (Real timestep) {
+  int migrateCount = 0;
+  Real maxVelocity;
+  int tupleSize = 2;
+  if (particles.empty()) {
+    CkReduction::tupleElement tupleRedn[] = {
+      CkReduction::tupleElement(sizeof(int), &migrateCount, CkReduction::sum_ulong_long),
+      CkReduction::tupleElement(sizeof(Real), &maxVelocity, CkReduction::max_double)};
+    CkReductionMsg * msg = CkReductionMsg::buildFromTuple(tupleRedn, tupleSize);
+    CkCallback cb (CkReductionTarget(Driver<CentroidData>, treepiecesReportMigrateCountAndMaxVelocity), centroid_driver);
+    msg->setCallback(cb);
+    this->contribute(msg);
     return;
-  }
+  };
 
-  // Perturb particles for incremental tree building
-  // TODO: Fails with input files with randomly generated particles,
-  //       as the initial velocities are too large and particles shoot out
-  //       of the universe
-  std::vector<Particle> in_particles;
-  std::map<int, std::vector<Particle>> out_particles;
   std::vector<int> remainders;
   Key temp = tp_key;
-  const size_t branch_factor = leaves[0]->getBranchFactor();
+  //CkPrintf("=== tp_idx = [%d] leaves[0] = %p\n", local_root->tp_index, leaves[0]);
+  const size_t branch_factor = (leaves.size() > 0? leaves[0]->getBranchFactor() :  empty_leaves[0]->getBranchFactor());
+  //CkPrintf("=== tp_idx = [%d] branch_factor = %d; tp_key = %d \n", local_root->tp_index, branch_factor, tp_key);
   while (temp >= branch_factor) {
     remainders.push_back(temp % branch_factor);
     temp /= branch_factor;
@@ -464,11 +465,66 @@ void TreePiece<Data>::perturb (Real timestep, bool if_flush) {
     }
   }
 
+  for (auto& particle : particles){
+    particle.perturb(timestep, readers.ckLocalBranch()->universe.box);
+    if (!tp_box.contains(particle.position)) {
+      migrateCount ++;
+    }
+    if (particle.velocity.length() > maxVelocity)
+        maxVelocity = particle.velocity.length();
+  }
+  //CkPrintf("=== tp_idx = [%d] migrateCount = %d; ratio = %f; maxVelocity = %f \n", local_root->tp_index, migrateCount, (double)(migrateCount / particles.size()), maxVelocity);
+  CkReduction::tupleElement tupleRedn[] = {
+    CkReduction::tupleElement(sizeof(unsigned long long), &migrateCount, CkReduction::sum_ulong_long),
+    CkReduction::tupleElement(sizeof(Real), &maxVelocity, CkReduction::max_float)};
+  CkReductionMsg * msg = CkReductionMsg::buildFromTuple(tupleRedn, tupleSize);
+  CkCallback cb (CkReductionTarget(Driver<CentroidData>, treepiecesReportMigrateCountAndMaxVelocity), centroid_driver);
+  msg->setCallback(cb);
+  this->contribute(msg);
+};
+
+template <typename Data>
+void TreePiece<Data>::perturb (Real timestep, bool if_flush) {
+  if (particles.empty()) return;
+  // If tree will be entirely rebuilt, just update particle positions
+  // based on the forces calculated from interactions
+  if (if_flush) {
+    //for (auto && p : particles) {
+    //  p.perturb(timestep, readers.ckLocalBranch()->universe.box);
+    //}
+    flush(readers);
+    return;
+  }
+
+  // Perturb particles for incremental tree building
+  // TODO: Fails with input files with randomly generated particles,
+  //       as the initial velocities are too large and particles shoot out
+  //       of the universe
+  std::vector<Particle> in_particles;
+  std::map<int, std::vector<Particle>> out_particles;
+  std::vector<int> remainders;
+  Key temp = tp_key;
+  //const size_t branch_factor = leaves[0]->getBranchFactor();
+  const size_t branch_factor = (leaves.size() > 0? leaves[0]->getBranchFactor() :  empty_leaves[0]->getBranchFactor());
+  while (temp >= branch_factor) {
+    remainders.push_back(temp % branch_factor);
+    temp /= branch_factor;
+  }
+  OrientedBox<Real> tp_box = readers.ckLocalBranch()->universe.box;
+  for (int i = remainders.size()-1; i >= 0; i--) {
+    for (int dim = 0; dim < 3; dim++) {
+      if (remainders[i] & (1 << (2-dim))) tp_box.lesser_corner[dim] = tp_box.center()[dim];
+      else tp_box.greater_corner[dim] = tp_box.center()[dim];
+    }
+  }
+
+  //CkPrintf("=== tp_idx = [%d] ratio = %f\n", local_root->tp_index, migrateRatio);
+  // migrateRatio is smaller than threshold, don't rebuild
   // calculate bounding box of TP
   for (auto& particle : particles) {
-    Vector3D<Real> old_position = particle.position;
-    particle.perturb(timestep, readers.ckLocalBranch()->universe.box);
-    //CkPrintf("magitude of displacement = %lf\n", (old_position - leaf->particles[i].position).length());
+    //Vector3D<Real> old_position = particle.position;
+    //particle.perturb(timestep, readers.ckLocalBranch()->universe.box);
+    //CkPrintf("magitude of displacement = %lf\n", (old_position - particle.position).length());
     //CkPrintf("total centroid is (%lf, %lf, %lf)\n", global_root->data.centroid.x, global_root->data.centroid.y, global_root->data.centroid.z);
     OrientedBox<Real> curr_box = tp_box;
     Node<Data>* node = local_root;
@@ -487,7 +543,7 @@ void TreePiece<Data>::perturb (Real timestep, bool if_flush) {
       remainders_index++;
       node = node->parent;
     }
-      //if (node->tp_index >= 0) CkPrintf("node tp_index %d\n", node->tp_index);
+    //if (node->tp_index >= 0) CkPrintf("node tp_index %d\n", node->tp_index);
     while (node->tp_index < 0) {
       int child = 0;
       Vector3D<Real> mean = curr_box.center();
@@ -509,11 +565,14 @@ void TreePiece<Data>::perturb (Real timestep, bool if_flush) {
       particle_vec.push_back(particle);
     }
   }
+  int count = 0;
   for (auto it = out_particles.begin(); it != out_particles.end(); it++) {
     ParticleMsg* msg = new (it->second.size()) ParticleMsg (it->second.data(), it->second.size());
+    count += it->second.size();
     this->thisProxy[it->first].receive(msg);
-  } 
+  }
   particles = in_particles;
+
 }
 
 template <typename Data>

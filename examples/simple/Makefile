@@ -23,5 +23,8 @@ Main.o: Main.C
 test: all
 	./charmrun ./$(BINARY) -f $(BASE_PATH)/inputgen/100k.tipsy +p3 ++ppn 3 +pemap 1-3 +commap 0 ++local
 
+run: all
+	./$(BINARY) -u 2  -f $(BASE_PATH)/inputgen/100k.tipsy
+
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o $(BINARY) charmrun
