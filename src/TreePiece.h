@@ -18,6 +18,7 @@
 #include <queue>
 #include <vector>
 #include <fstream>
+#include <iomanip>
 
 extern CProxy_TreeSpec treespec;
 extern CProxy_Reader readers;
@@ -435,6 +436,7 @@ void TreePiece<Data>::interact(const CkCallback& cb) {
 template <typename Data>
 void TreePiece<Data>::calculateMigrateRatio (Real timestep) {
   int migrateCount = 0;
+  int wrongTPCount = 0;
   Real maxVelocity;
   int tupleSize = 2;
   if (particles.empty()) {
@@ -466,6 +468,11 @@ void TreePiece<Data>::calculateMigrateRatio (Real timestep) {
   }
 
   for (auto& particle : particles){
+    // Test if particles before perturb is in the right TP
+    if(!tp_box.contains(particle.position)){
+      wrongTPCount ++;
+      std::cout << std::fixed << std::setprecision(9)<< "Particle position: " << particle.position << "; tp_box " << tp_box << std::endl;
+    }
     particle.perturb(timestep, readers.ckLocalBranch()->universe.box);
     if (!tp_box.contains(particle.position)) {
       migrateCount ++;
@@ -473,6 +480,7 @@ void TreePiece<Data>::calculateMigrateRatio (Real timestep) {
     if (particle.velocity.length() > maxVelocity)
         maxVelocity = particle.velocity.length();
   }
+  if (wrongTPCount > 0) CkPrintf("[E] === tp_idx = [%d] wrongTPCount = %d, totalParticles = %d \n", local_root->tp_index, wrongTPCount, particles.size());
   //CkPrintf("=== tp_idx = [%d] migrateCount = %d; ratio = %f; maxVelocity = %f \n", local_root->tp_index, migrateCount, (double)(migrateCount / particles.size()), maxVelocity);
   CkReduction::tupleElement tupleRedn[] = {
     CkReduction::tupleElement(sizeof(unsigned long long), &migrateCount, CkReduction::sum_ulong_long),
