@@ -443,7 +443,7 @@ void TreePiece<Data>::calculateMigrateRatio (Real timestep) {
     CkReduction::tupleElement tupleRedn[] = {
       CkReduction::tupleElement(sizeof(int), &migrateCount, CkReduction::sum_int),
       CkReduction::tupleElement(sizeof(Real), &maxVelocity, CkReduction::max_double),
-      CkReduction::tupleElement(sizeof(int), &particlesSize, CkReduction::max_int),
+      CkReduction::tupleElement(sizeof(int), &particlesSize, CkReduction::max_int)
     };
     CkReductionMsg * msg = CkReductionMsg::buildFromTuple(tupleRedn, tupleSize);
     CkCallback cb (CkReductionTarget(Driver<CentroidData>, treepiecesReportMigrateCountAndMaxVelocity), centroid_driver);
@@ -481,7 +481,7 @@ void TreePiece<Data>::calculateMigrateRatio (Real timestep) {
   CkReduction::tupleElement tupleRedn[] = {
     CkReduction::tupleElement(sizeof(unsigned long long), &migrateCount, CkReduction::sum_ulong_long),
     CkReduction::tupleElement(sizeof(Real), &maxVelocity, CkReduction::max_float),
-    CkReduction::tupleElement(sizeof(int), &particlesSize, CkReduction::max_int),
+    CkReduction::tupleElement(sizeof(int), &particlesSize, CkReduction::max_int)
   };
 
   CkReductionMsg * msg = CkReductionMsg::buildFromTuple(tupleRedn, tupleSize);
