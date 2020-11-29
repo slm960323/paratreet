@@ -1,0 +1,147 @@
+Charm++: standalone mode (not using charmrun)
+Charm++> Running in non-SMP mode: 1 processes (PEs)
+Converse/Charm++ Commit ID: v6.11.0-devel-384-g46a15db
+Charm++ built without optimization.
+Do not use for performance benchmarking (build with --with-production to do so).
+Charm++ built with internal error checking enabled.
+Do not use for performance benchmarking (build without --enable-error-checking to do so).
+Charm++> Using STL-based msgQ:
+Charm++> Using randomized msgQ. Priorities will not be respected!
+Charm++> scheduler running in netpoll mode.
+CharmLB> Load balancer assumes all CPUs are same.
+Charm++> Running on 1 hosts (2 sockets x 20 cores x 1 PUs = 40-way SMP)
+Charm++> cpu topology info is gathered in 0.001 seconds.
+
+[PARATREET]
+Input file: /home/simengl2/School/paratreet/inputgen/100k.tipsy
+Decomposition type: OCT
+Tree type: OCT
+Maximum number of particles per treepiece: 1000
+Maximum number of particles per leaf: 10
+
+* Initialization
+Loading Tipsy data and building universe: 19.074 ms
+Universal bounding box: <100000, 1.001, 6.124, {(-16.969 -17.214 -17.346),(17.391 17.646 16.913)}> with volume 41034.148
+Assigning keys and sorting particles: 81.264 ms
+Setting up splitters for decomposition: 0.685 ms
+Created 421 TreePieces: 9.680 ms
+Flushing particles to TreePieces: 8.701 ms
+
+* Iteration 0
+Tree build: 102.106 ms
+Received data from 60 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 60
+TreeCanopy cache loading: 0.293 ms
+Tree traversal: 5944.054 ms
+Interactions: 9912.221 ms
+Perturbations: 36.381 ms; timestep_size = 0.078603; average mirgate ratio = 0.412010; rebuild true
+Rebuilding universe: 4.110 ms
+Universal bounding box: <100000, 1.001, 6.124, {(-16.678 -17.115 -17.113),(17.332 17.428 16.722)}> with volume 39749.289
+Assigning keys and sorting particles: 86.615 ms
+Setting up splitters for decomposition: 9.531 ms
+Created 428 TreePieces: 4.673 ms
+Flushing particles to TreePieces: 6.293 ms
+
+* Iteration 1
+Tree build: 94.942 ms
+Received data from 61 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 61
+TreeCanopy cache loading: 0.340 ms
+Tree traversal: 5934.372 ms
+Interactions: 9244.087 ms
+Perturbations: 55.710 ms; timestep_size = 0.077882; average mirgate ratio = 0.339550; rebuild false
+
+* Iteration 2
+Tree build: 75.505 ms
+Received data from 61 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 61
+TreeCanopy cache loading: 0.519 ms
+Tree traversal: 255.555 ms
+Interactions: 0.993 ms
+Perturbations: 43.912 ms; timestep_size = 0.077119; average mirgate ratio = 0.333390; rebuild false
+
+* Iteration 3
+Tree build: 72.233 ms
+Received data from 61 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 61
+TreeCanopy cache loading: 0.582 ms
+Tree traversal: 254.990 ms
+Interactions: 1.024 ms
+Perturbations: 28.190 ms; timestep_size = 0.068780; average mirgate ratio = 0.549090; rebuild true
+Rebuilding universe: 6.167 ms
+Universal bounding box: <100000, 1.001, 6.124, {(-16.655 -16.981 -16.805),(16.903 17.335 16.387)}> with volume 38223.902
+Assigning keys and sorting particles: 71.758 ms
+Setting up splitters for decomposition: 0.678 ms
+Created 421 TreePieces: 4.821 ms
+Flushing particles to TreePieces: 5.915 ms
+
+* Iteration 4
+Tree build: 94.226 ms
+Received data from 60 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 60
+TreeCanopy cache loading: 0.270 ms
+Tree traversal: 5945.303 ms
+Interactions: 9757.134 ms
+Perturbations: 55.973 ms; timestep_size = 0.061946; average mirgate ratio = 0.297550; rebuild false
+
+* Iteration 5
+Tree build: 76.526 ms
+Received data from 60 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 60
+TreeCanopy cache loading: 0.576 ms
+Tree traversal: 270.219 ms
+Interactions: 1.021 ms
+Perturbations: 42.516 ms; timestep_size = 0.056936; average mirgate ratio = 0.270900; rebuild false
+
+* Iteration 6
+Tree build: 76.692 ms
+Received data from 60 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 60
+TreeCanopy cache loading: 0.584 ms
+Tree traversal: 270.476 ms
+Interactions: 0.956 ms
+Perturbations: 28.819 ms; timestep_size = 0.052883; average mirgate ratio = 0.454560; rebuild true
+Rebuilding universe: 3.528 ms
+Universal bounding box: <100000, 1.001, 6.125, {(-16.565 -16.852 -16.767),(16.857 17.207 16.011)}> with volume 37312.051
+Assigning keys and sorting particles: 73.907 ms
+Setting up splitters for decomposition: 2.920 ms
+Created 428 TreePieces: 5.403 ms
+Flushing particles to TreePieces: 6.470 ms
+
+* Iteration 7
+Tree build: 94.118 ms
+Received data from 61 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 61
+TreeCanopy cache loading: 0.361 ms
+Tree traversal: 5951.372 ms
+Interactions: 9923.429 ms
+Perturbations: 54.373 ms; timestep_size = 0.049181; average mirgate ratio = 0.240200; rebuild false
+
+* Iteration 8
+Tree build: 85.392 ms
+Received data from 61 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 61
+TreeCanopy cache loading: 0.611 ms
+Tree traversal: 292.603 ms
+Interactions: 1.161 ms
+Perturbations: 41.789 ms; timestep_size = 0.046418; average mirgate ratio = 0.224830; rebuild false
+
+* Iteration 9
+Tree build: 79.609 ms
+Received data from 61 TreeCanopies
+Broadcasting every tree canopy because num_share_nodes is unset
+[CacheManager 0] receiving starter pack, size = 61
+TreeCanopy cache loading: 0.542 ms
+Tree traversal: 287.920 ms
+Interactions: 1.081 ms
+Perturbations: 48.274 ms; timestep_size = 0.044053; average mirgate ratio = 0.392640; rebuild false
+[Partition 0][Node 0] End of program

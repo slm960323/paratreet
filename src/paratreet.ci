@@ -56,7 +56,7 @@ module paratreet {
   nodegroup CacheManager<CentroidData>;
 #endif
 
-  extern entry void CacheManager<CentroidData> startPrefetch<GravityVisitor>(DPHolder<CentroidData>, CkCallback); 
+  extern entry void CacheManager<CentroidData> startPrefetch<GravityVisitor>(DPHolder<CentroidData>, CkCallback);
 
   template <typename Data>
   group Resumer {
@@ -85,6 +85,7 @@ module paratreet {
     entry void interact(const CkCallback&);
     entry void goDown(Key);
     entry void requestNodes(Key, int);
+    entry void calculateMigrateRatio(Real timestep);
     entry void perturb(Real timestep, bool);
     entry void flush(CProxy_Reader);
     entry void destroy();
@@ -115,6 +116,7 @@ module paratreet {
     entry Driver(CProxy_CacheManager<Data>);
     entry [threaded] void init(CkCallback cb);
     entry [threaded] void run(CkCallback cb);
+    entry [reductiontarget] void treepiecesReportMigrateCountAndMaxVelocity(CkReductionMsg * msg);
     entry [reductiontarget] void countInts(unsigned long long intrn_counts [4]);
     entry void recvTC(std::pair<Key, SpatialNode<Data>>);
     entry void loadCache(CkCallback);
