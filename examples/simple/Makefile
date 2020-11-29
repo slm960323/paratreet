@@ -9,13 +9,16 @@ LD_LIBS = -L$(PARATREET_PATH) -lparatreet
 BINARY = Main
 OBJS = Main.o
 
-all: $(BINARY)
+all: $(BINARY) $(BINARY)_proj
 
 $(BINARY).decl.h: $(BINARY).ci
 	$(CHARMC) $<
 
 $(BINARY): $(BINARY).decl.h $(OBJS)
 	$(CHARMC) -language charm++ -o $(BINARY) $(OBJS) $(LD_LIBS)
+
+$(BINARY)_proj: $(BINARY).decl.h $(OBJS)
+	$(CHARMC) -language charm++ -tracemode projections -o $(BINARY)_proj $(OBJS) $(LD_LIBS)
 
 Main.o: Main.C
 	$(CHARMC) -c $<
@@ -25,6 +28,9 @@ test: all
 
 run: all
 	./$(BINARY) -u 2  -f $(BASE_PATH)/inputgen/100k.tipsy
+
+proj: all
+	./charmrun ./$(BINARY)_proj -f $(BASE_PATH)/inputgen/100k.tipsy +p20 +setcpuaffinity
 
 clean:
 	rm -f *.decl.h *.def.h conv-host *.o $(BINARY) charmrun

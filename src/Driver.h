@@ -177,7 +177,7 @@ public:
       treepieces.calculateMigrateRatio(updated_timestep_size);
       CkWaitQD();
       //bool complete_rebuild = (iter % config.flush_period == config.flush_period - 1);
-      bool complete_rebuild = tp_migrate_ratio > 0.7;
+      bool complete_rebuild = tp_migrate_ratio > 0.0;
       Real max_universe_box_dimension = 0;
       for (int dim = 0; dim < 3; dim ++){
         Real length = universe.box.greater_corner[dim] - universe.box.lesser_corner[dim];
@@ -224,10 +224,14 @@ public:
     msg->toTuple(&res, &numRedn);
     int migrateCount = *(int*)(res[0].data);
     max_velocity = *(Real*)(res[1].data) + 0.1; // avoid max_velocity = 0.0
+    int maxParticlesSize = *(int*)(res[2].data);
+    float avgTPSize = (float) universe.n_particles / (float) n_treepieces;
+    float ratio = (float) maxParticlesSize / avgTPSize;
     tp_migrate_ratio = migrateCount;
     tp_migrate_ratio /= universe.n_particles;
 
     //CkPrintf("Tree pieces report msg size = %d; migrate count = %d; total particals = %d; ratio = %f;  max_velocity = %f\n", numRedn, migrateCount, universe.n_particles, tp_migrate_ratio, max_velocity);
+    CkPrintf("[Meta] n_TP = %d; maxTPSize = %d; avgTPSize=%f; ratio=%f\n", n_treepieces, maxParticlesSize, avgTPSize, ratio);
   }
 
   void countInts(unsigned long long* intrn_counts) {
