@@ -179,10 +179,27 @@ public:
 
       // Move the particles in TreePieces
       start_time = CkWallTimer();
-      treepieces.calculateMigrateRatio(updated_timestep_size);
+      CkReductionMsg * msg;
+      treepieces.calculateMigrateRatio(updated_timestep_size, CkCallbackResumeThread((void*&)msg));
       CkWaitQD();
+      // Parse TP reduction message
+      int numRedn = 0;
+      CkReduction::tupleElement* res = NULL;
+      msg->toTuple(&res, &numRedn);
+      int migrateCount = *(int*)(res[0].data);
+      max_velocity = *(Real*)(res[1].data) + 0.1; // avoid max_velocity = 0.0
+      int maxParticlesSize = *(int*)(res[2].data);
+      float avgTPSize = (float) universe.n_particles / (float) n_treepieces;
+      float ratio = (float) maxParticlesSize / avgTPSize;
+      tp_migrate_ratio = migrateCount;
+      tp_migrate_ratio /= universe.n_particles;
+
+      CkPrintf("Tree pieces report msg size = %d; migrate count = %d; total particals = %d; ratio = %f;  max_velocity = %f\n", numRedn, migrateCount, universe.n_particles, tp_migrate_ratio, max_velocity);
+      CkPrintf("[Meta] n_TP = %d; maxTPSize = %d; avgTPSize=%f; ratio=%f\n", n_treepieces, maxParticlesSize, avgTPSize, ratio);
+      //End TP reduction message parsing
+
       //bool complete_rebuild = (iter % config.flush_period == config.flush_period - 1);
-      bool complete_rebuild = tp_migrate_ratio > 0.0;
+      bool complete_rebuild = false; //tp_migrate_ratio > 0.0;
       Real max_universe_box_dimension = 0;
       for (int dim = 0; dim < 3; dim ++){
         Real length = universe.box.greater_corner[dim] - universe.box.lesser_corner[dim];
@@ -193,7 +210,7 @@ public:
       updated_timestep_size = max_universe_box_dimension / max_velocity / 100.0;
       //CkPrintf("Perturbations Parameters: max_universe_box_dimension = %f; max_velocity = %f; updated_timestep_size = %f\n",max_universe_box_dimension, max_velocity, updated_timestep_size);
       if (updated_timestep_size > config.timestep_size) updated_timestep_size = config.timestep_size;
-      //!!treepieces.perturb(config.timestep_size, complete_rebuild); // 0.1s for example
+      //treepieces.perturb(config.timestep_size, complete_rebuild); // 0.1s for example
       treepieces.perturb(updated_timestep_size, complete_rebuild); // 0.1s for example
       CkWaitQD();
       CkPrintf("Perturbations: %.3lf ms; timestep_size = %f; average mirgate ratio = %f; rebuild %s\n", (CkWallTimer() - start_time) * 1000, updated_timestep_size, tp_migrate_ratio, (complete_rebuild ? "true" : "false"));
@@ -235,7 +252,7 @@ public:
     tp_migrate_ratio = migrateCount;
     tp_migrate_ratio /= universe.n_particles;
 
-    //CkPrintf("Tree pieces report msg size = %d; migrate count = %d; total particals = %d; ratio = %f;  max_velocity = %f\n", numRedn, migrateCount, universe.n_particles, tp_migrate_ratio, max_velocity);
+    CkPrintf("Tree pieces report msg size = %d; migrate count = %d; total particals = %d; ratio = %f;  max_velocity = %f\n", numRedn, migrateCount, universe.n_particles, tp_migrate_ratio, max_velocity);
     CkPrintf("[Meta] n_TP = %d; maxTPSize = %d; avgTPSize=%f; ratio=%f\n", n_treepieces, maxParticlesSize, avgTPSize, ratio);
   }
 

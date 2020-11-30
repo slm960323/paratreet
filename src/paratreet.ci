@@ -85,7 +85,7 @@ module paratreet {
     entry void interact(const CkCallback&);
     entry void goDown(Key);
     entry void requestNodes(Key, int);
-    entry void calculateMigrateRatio(Real timestep);
+    entry void calculateMigrateRatio(Real timestep, const CkCallback & cb);
     entry void perturb(Real timestep, bool);
     entry void flush(CProxy_Reader);
     entry void destroy();

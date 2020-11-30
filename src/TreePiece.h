@@ -68,7 +68,7 @@ public:
   void goDown(Key);
   void interact(const CkCallback&);
   void print(Node<Data>*);
-  void calculateMigrateRatio(Real timestep);
+  void calculateMigrateRatio(Real timestep, const CkCallback & cb);
   void perturb (Real timestep, bool);
   void flush(CProxy_Reader);
   void destroy();
@@ -434,10 +434,10 @@ void TreePiece<Data>::interact(const CkCallback& cb) {
 }
 
 template <typename Data>
-void TreePiece<Data>::calculateMigrateRatio (Real timestep) {
+void TreePiece<Data>::calculateMigrateRatio (Real timestep, const CkCallback & cb) {
   int migrateCount = 0;
   int particlesSize = particles.size();
-  Real maxVelocity;
+  Real maxVelocity = 0.0;
   int tupleSize = 3;
   if (particles.empty()) {
     CkReduction::tupleElement tupleRedn[] = {
@@ -446,7 +446,6 @@ void TreePiece<Data>::calculateMigrateRatio (Real timestep) {
       CkReduction::tupleElement(sizeof(int), &particlesSize, CkReduction::max_int)
     };
     CkReductionMsg * msg = CkReductionMsg::buildFromTuple(tupleRedn, tupleSize);
-    CkCallback cb (CkReductionTarget(Driver<CentroidData>, treepiecesReportMigrateCountAndMaxVelocity), centroid_driver);
     msg->setCallback(cb);
     this->contribute(msg);
     return;
@@ -485,7 +484,6 @@ void TreePiece<Data>::calculateMigrateRatio (Real timestep) {
   };
 
   CkReductionMsg * msg = CkReductionMsg::buildFromTuple(tupleRedn, tupleSize);
-  CkCallback cb (CkReductionTarget(Driver<CentroidData>, treepiecesReportMigrateCountAndMaxVelocity), centroid_driver);
   msg->setCallback(cb);
   this->contribute(msg);
 };
