@@ -18,6 +18,7 @@
 #include <queue>
 #include <vector>
 #include <fstream>
+#include <iomanip>
 
 extern CProxy_TreeSpec treespec;
 extern CProxy_Reader readers;
