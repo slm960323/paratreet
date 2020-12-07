@@ -184,6 +184,7 @@ void TreePiece<Data>::buildTree() {
   global_root = treespec.ckLocalBranch()->template makeNode<Data>(1, 0, particles.size(), &particles[0], 0, n_treepieces - 1, false, nullptr, this->thisIndex);
   recursiveBuild(global_root, &particles[0], false, log2(global_root->getBranchFactor()));
 
+  //CkPrintf("[TP %d] tp_key = %d; local_root->tp_index = %d\n", this->thisIndex, tp_key, local_root->tp_index);
   // Initialize interactions vector: filled in during traversal
   interactions = std::vector<std::vector<Node<Data>*>>(leaves.size());
 
@@ -195,10 +196,9 @@ void TreePiece<Data>::buildTree() {
 
 template <typename Data>
 bool TreePiece<Data>::recursiveBuild(Node<Data>* node, Particle* node_particles, bool saw_tp_key, size_t log_branch_factor) {
-#if DEBUG
-  //CkPrintf("[Level %d] created node 0x%" PRIx64 " with %d particles\n",
-    //  node->depth, node->key, node->n_particles);
-#endif
+//#if DEBUG
+  //CkPrintf("[Level %d] created node 0x%" PRIx64 " with %d particles\n", node->depth, node->key, node->n_particles);
+//#endif
   // store reference to splitters
   //static std::vector<Splitter>& splitters = readers.ckLocalBranch()->splitters;
   auto config = treespec.ckLocalBranch()->getConfiguration();
@@ -233,56 +233,6 @@ bool TreePiece<Data>::recursiveBuild(Node<Data>* node, Particle* node_particles,
       return false;
     }
   }
-
-  // For all other cases, we go deeper
-  /* XXX: For SFC?
-  int owner_start = node->owner_tp_start;
-  int owner_end = node->owner_tp_end;
-  bool single_owner = (owner_start == owner_end);
-
-  if (is_light) {
-    if (saw_tp_key) {
-      // we can make the node a local leaf
-      if (node->n_particles == 0)
-        node->type = Node<Data>::EmptyLeaf;
-      else
-        node->type = Node<Data>::Leaf;
-
-        return true;
-    }
-    else if (!is_prefix) {
-      // we have diverged from the path to the subtree rooted at the treepiece's key
-      // so designate as remote
-      node->type = Node<Data>::Remote;
-
-      CkAssert(node->n_particles == 0);
-      CkAssert(node->n_children == 0);
-
-      if (single_owner) {
-        int assigned = splitters[owner_start].n_particles;
-        if (assigned == 0) {
-          node->type = Node<Data>::RemoteEmptyLeaf;
-        }
-        else if (assigned <= BUCKET_TOLERANCE * max_particles_per_leaf) {
-          node->type = Node<Data>::RemoteLeaf;
-        }
-        else {
-          node->type = Node<Data>::Remote;
-          node->n_children = BRANCH_FACTOR;
-        }
-      }
-      else {
-        node->type = Node<Data>::Remote;
-        node->n_children = BRANCH_FACTOR;
-      }
-
-      return false;
-    }
-    else {
-      CkAbort("Error: can a light node be an internal node (above a TP root)?");
-    }
-  }
-  */
 
   // Create children
   node->n_children = node->wait_count = (1 << log_branch_factor);
@@ -436,14 +386,17 @@ void TreePiece<Data>::interact(const CkCallback& cb) {
 template <typename Data>
 void TreePiece<Data>::calculateMigrateRatio (Real timestep, const CkCallback & cb) {
   int migrateCount = 0;
+  int outUniverseCount = 0;
   int particlesSize = particles.size();
   Real maxVelocity = 0.0;
-  int tupleSize = 3;
+  int tupleSize = 5;
   if (particles.empty()) {
     CkReduction::tupleElement tupleRedn[] = {
       CkReduction::tupleElement(sizeof(int), &migrateCount, CkReduction::sum_int),
       CkReduction::tupleElement(sizeof(Real), &maxVelocity, CkReduction::max_double),
-      CkReduction::tupleElement(sizeof(int), &particlesSize, CkReduction::max_int)
+      CkReduction::tupleElement(sizeof(int), &particlesSize, CkReduction::max_int),
+      CkReduction::tupleElement(sizeof(int), &particlesSize, CkReduction::sum_int),
+      CkReduction::tupleElement(sizeof(int), &outUniverseCount, CkReduction::sum_int)
     };
     CkReductionMsg * msg = CkReductionMsg::buildFromTuple(tupleRedn, tupleSize);
     msg->setCallback(cb);
@@ -453,6 +406,7 @@ void TreePiece<Data>::calculateMigrateRatio (Real timestep, const CkCallback & c
 
   std::vector<int> remainders;
   Key temp = tp_key;
+  Key expected_tp_key = treespec.ckLocalBranch()->getDecomposition()->getTpKey(this->thisIndex);
   //CkPrintf("=== tp_idx = [%d] leaves[0] = %p\n", local_root->tp_index, leaves[0]);
   const size_t branch_factor = (leaves.size() > 0? leaves[0]->getBranchFactor() :  empty_leaves[0]->getBranchFactor());
   //CkPrintf("=== tp_idx = [%d] branch_factor = %d; tp_key = %d \n", local_root->tp_index, branch_factor, tp_key);
@@ -461,6 +415,8 @@ void TreePiece<Data>::calculateMigrateRatio (Real timestep, const CkCallback & c
     temp /= branch_factor;
   }
   OrientedBox<Real> tp_box = readers.ckLocalBranch()->universe.box;
+  OrientedBox<Real> universe = tp_box;
+  //std::cout << "=== tp_idx = "<< local_root->tp_index << "; tp_key = " << tp_key << "; universe: " << tp_box << "." << std::endl;
   for (int i = remainders.size()-1; i >= 0; i--) {
     for (int dim = 0; dim < 3; dim++) {
       if (remainders[i] & (1 << (2-dim))) tp_box.lesser_corner[dim] = tp_box.center()[dim];
@@ -468,19 +424,33 @@ void TreePiece<Data>::calculateMigrateRatio (Real timestep, const CkCallback & c
     }
   }
 
+  int wrongTPCount = 0;
   for (auto& particle : particles){
+    if (!tp_box.contains(particle.position)){
+      wrongTPCount ++;
+    }
     particle.perturb(timestep, readers.ckLocalBranch()->universe.box);
     if (!tp_box.contains(particle.position)) {
       migrateCount ++;
     }
+    if (!universe.contains(particle.position)) {
+      outUniverseCount ++;
+    }
     if (particle.velocity.length() > maxVelocity)
-        maxVelocity = particle.velocity.length();
+      maxVelocity = particle.velocity.length();
   }
+  //if (wrongTPCount > 0) CkPrintf("[TP %d] real_tp_key = %d; expected_tp_key = %d; %s; wrongTPCount = %d \n", local_root->tp_index, tp_key, expected_tp_key, (tp_key == expected_tp_key ? "Match" : "Diff"),  wrongTPCount);
+  if (this->thisIndex == 1){
+    std::cout << "Universe::" << universe << std::endl;
+  }
+  //if (wrongTPCount > 0) CkPrintf("[TP %d] wrongTPCount = %d \n", local_root->tp_index, wrongTPCount);
   //CkPrintf("=== tp_idx = [%d] migrateCount = %d; ratio = %f; maxVelocity = %f \n", local_root->tp_index, migrateCount, (double)(migrateCount / particles.size()), maxVelocity);
   CkReduction::tupleElement tupleRedn[] = {
     CkReduction::tupleElement(sizeof(unsigned long long), &migrateCount, CkReduction::sum_ulong_long),
     CkReduction::tupleElement(sizeof(Real), &maxVelocity, CkReduction::max_float),
-    CkReduction::tupleElement(sizeof(int), &particlesSize, CkReduction::max_int)
+    CkReduction::tupleElement(sizeof(int), &particlesSize, CkReduction::max_int),
+    CkReduction::tupleElement(sizeof(int), &particlesSize, CkReduction::sum_int),
+    CkReduction::tupleElement(sizeof(int), &outUniverseCount, CkReduction::sum_int)
   };
 
   CkReductionMsg * msg = CkReductionMsg::buildFromTuple(tupleRedn, tupleSize);
@@ -516,6 +486,7 @@ void TreePiece<Data>::perturb (Real timestep, bool if_flush) {
     temp /= branch_factor;
   }
   OrientedBox<Real> tp_box = readers.ckLocalBranch()->universe.box;
+  OrientedBox<Real> univ = tp_box;
   for (int i = remainders.size()-1; i >= 0; i--) {
     for (int dim = 0; dim < 3; dim++) {
       if (remainders[i] & (1 << (2-dim))) tp_box.lesser_corner[dim] = tp_box.center()[dim];
@@ -523,32 +494,53 @@ void TreePiece<Data>::perturb (Real timestep, bool if_flush) {
     }
   }
 
+  Node<Data> * universe_root = local_root;
+  OrientedBox<Real> universe_box = tp_box;
+
+  int remainders_index = 0;
+  while (universe_root->parent) {
+    Vector3D<Real> new_point = 2 * universe_box.greater_corner - universe_box.lesser_corner;
+    if (remainders[remainders_index] & 4) new_point.x = 2 * universe_box.lesser_corner.x - universe_box.greater_corner.x;
+    if (remainders[remainders_index] & 2) new_point.y = 2 * universe_box.lesser_corner.y - universe_box.greater_corner.y;
+    if (remainders[remainders_index] & 1) new_point.z = 2 * universe_box.lesser_corner.z - universe_box.greater_corner.z;
+    universe_box.grow(new_point);
+    remainders_index++;
+    universe_root = universe_root->parent;
+  }
+
+  std::cout << "=== tp_idx ["<< local_root->tp_index <<"]; calculated universe_root: " << universe_root << "; global_root = "<< global_root << "; calculated universe_box = " << universe_box <<std::endl;
   //CkPrintf("=== tp_idx = [%d] ratio = %f\n", local_root->tp_index, migrateRatio);
   // migrateRatio is smaller than threshold, don't rebuild
   // calculate bounding box of TP
+  int offTPCount = 0;
   for (auto& particle : particles) {
-    //Vector3D<Real> old_position = particle.position;
-    //particle.perturb(timestep, readers.ckLocalBranch()->universe.box);
-    //CkPrintf("magitude of displacement = %lf\n", (old_position - particle.position).length());
-    //CkPrintf("total centroid is (%lf, %lf, %lf)\n", global_root->data.centroid.x, global_root->data.centroid.y, global_root->data.centroid.z);
-    OrientedBox<Real> curr_box = tp_box;
-    Node<Data>* node = local_root;
-    int remainders_index = 0;
-    while (!curr_box.contains(particle.position)) {
-      //CkPrintf("not under umbrella of node %d with volume %lf\n", node->key, curr_box.volume());
-/*      if (node->parent == nullptr) CkPrintf("point (%lf, %lf, %lf) has force (%lf, %lf, %lf) and old position (%lf, %lf, %lf)\n",
-              particle.position.x, particle.position.y, particle.position.z,
-      leaf->getForce(i).x / .001, leaf->getForce(i).y / .001, leaf->getForce(i).z / .001,
-	  old_position.x, old_position.y, old_position.z);*/
-      Vector3D<Real> new_point = 2 * curr_box.greater_corner - curr_box.lesser_corner;
-      if (remainders[remainders_index] & 4) new_point.x = 2 * curr_box.lesser_corner.x - curr_box.greater_corner.x;
-      if (remainders[remainders_index] & 2) new_point.y = 2 * curr_box.lesser_corner.y - curr_box.greater_corner.y;
-      if (remainders[remainders_index] & 1) new_point.z = 2 * curr_box.lesser_corner.z - curr_box.greater_corner.z;
-      curr_box.grow(new_point);
-      remainders_index++;
-      node = node->parent;
+    if ( tp_box.contains(particle.position) ) {
+      in_particles.push_back(particle);
+      continue;
     }
-    //if (node->tp_index >= 0) CkPrintf("node tp_index %d\n", node->tp_index);
+
+    OrientedBox<Real> curr_box = universe_box;
+    Node<Data>* node = universe_root;
+
+    //int remainders_index = 0;
+    //if (!tp_box.contains(particle.position)){
+    //  offTPCount ++;
+    //}
+    //while (!curr_box.contains(particle.position)) {
+    //  //CkPrintf("not under umbrella of node %d with volume %lf\n", node->key, curr_box.volume());
+    //  /*if (node->parent == nullptr) CkPrintf("point (%lf, %lf, %lf) has force (%lf, %lf, %lf) and old position (%lf, %lf, %lf)\n",
+    //          particle.position.x, particle.position.y, particle.position.z,
+    //  leaf->getForce(i).x / .001, leaf->getForce(i).y / .001, leaf->getForce(i).z / .001,
+	//  old_position.x, old_position.y, old_position.z);*/
+    //  Vector3D<Real> new_point = 2 * curr_box.greater_corner - curr_box.lesser_corner;
+    //  if (remainders[remainders_index] & 4) new_point.x = 2 * curr_box.lesser_corner.x - curr_box.greater_corner.x;
+    //  if (remainders[remainders_index] & 2) new_point.y = 2 * curr_box.lesser_corner.y - curr_box.greater_corner.y;
+    //  if (remainders[remainders_index] & 1) new_point.z = 2 * curr_box.lesser_corner.z - curr_box.greater_corner.z;
+    //  curr_box.grow(new_point);
+    //  remainders_index++;
+    //  node = node->parent;
+    //}
+
     while (node->tp_index < 0) {
       int child = 0;
       Vector3D<Real> mean = curr_box.center();
@@ -564,18 +556,18 @@ void TreePiece<Data>::perturb (Real timestep, bool if_flush) {
       }
       node = node->getChild(child); // move down the tree :)
     }
-    if (node == local_root) in_particles.push_back(particle);
-    else {
-      std::vector<Particle>& particle_vec = out_particles[node->tp_index];
-      particle_vec.push_back(particle);
-    }
+     // std::cout << "=== tp_idx = ["<< local_root->tp_index <<"] -> "<< node -> tp_index <<"; tp_key = "<< tp_key <<"; universe: " << univ << "; tp_box"<< tp_box << "; curr_box = " << curr_box << "; particle.position = "<< particle.position << std::endl;
+    out_particles[node->tp_index].push_back(particle);
   }
   int count = 0;
+  //CkPrintf("=== tp_idx = [%d]  proxy_id = %d; out_particles size = %d; offTPCount = %d \n", local_root->tp_index, this->thisIndex, out_particles.size(), offTPCount);
   for (auto it = out_particles.begin(); it != out_particles.end(); it++) {
     ParticleMsg* msg = new (it->second.size()) ParticleMsg (it->second.data(), it->second.size());
     count += it->second.size();
     this->thisProxy[it->first].receive(msg);
   }
+  //std::cout << "=== tp_idx = ["<< local_root->tp_index <<"; out_particles size = "<< count <<  "; offTPCount = "<< offTPCount << "; universe: " << univ << "; tp_box"<< tp_box <<std::endl;
+  //std::cout << "=== tp_idx = ["<< local_root->tp_index <<"; out_particles size = "<< count <<std::endl;
   particles = in_particles;
 
 }
